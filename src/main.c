@@ -36,7 +36,18 @@ const GPathInfo SECOND_SEGMENT_PATH_POINTS = {
   }
 };
 
+const GPathInfo Mask = {
+  4,
+  (GPoint []) {
+    {0, 70},
+    {0, -70}, // 70 = radius + fudge; 7 = 70*tan(6 degrees); 6 degrees per minute;
+    {-70,  -70},
+    {-70, 70}
+  }
+};
+
 static GPath *second_segment_path;
+static GPath *mask_path;
 
 static int getQuadrant(int angle) {
   if ((angle>0)&&(angle<=90)) {
@@ -116,15 +127,24 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   graphics_fill_circle(ctx, center, 65);
 
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
+  graphics_context_set_antialiased(ctx, S_TRUE);
+  graphics_context_set_stroke_color(ctx, GColorClear);
   //what is this for? gpath_draw_filled(ctx, second_segment_path);
 
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "(TRIG_MAX_ANGLE / 360) * minAngle = %u", (TRIG_MAX_ANGLE / 360) * minAngle);
+  gpath_rotate_to(mask_path, (TRIG_MAX_ANGLE / 360) * minAngle);
+  gpath_draw_filled(ctx, mask_path);
+  gpath_rotate_to(mask_path, (TRIG_MAX_ANGLE / 360) * (hourAngle + 180));
+  gpath_draw_filled(ctx, mask_path);
+  
+  graphics_context_set_stroke_color(ctx, GColorYellow);
+  
   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
   gpath_draw_outline(ctx, second_segment_path);
+//   int minQuadrant = getQuadrant(minAngle);
+//   int hourQuadrant = getQuadrant(hourAngle);
 
-  int minQuadrant = getQuadrant(minAngle);
-  int hourQuadrant = getQuadrant(hourAngle);
-
-  drawBlackout(minQuadrant, hourQuadrant, minAngle, hourAngle);
+//   drawBlackout(minQuadrant, hourQuadrant, minAngle, hourAngle);
 
   // struct GPathInfo blackoutPath;
   // GPoint blackoutPoints [5];
@@ -134,10 +154,10 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   // what's this for? gpath_move_to(second_segment_path, grect_center_point(&bounds));
   // gpath_destroy(blackout);
 
-  gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * minAngle);
-  gpath_draw_outline(ctx, second_segment_path);
-  gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * hourAngle);
-  gpath_draw_outline(ctx, second_segment_path);
+//   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * minAngle);
+//   gpath_draw_outline(ctx, second_segment_path);
+//   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * hourAngle);
+//   gpath_draw_outline(ctx, second_segment_path);
 
 }
 
@@ -268,6 +288,10 @@ static void init(void) {
   // Init the second segment path
   second_segment_path = gpath_create(&SECOND_SEGMENT_PATH_POINTS);
   gpath_move_to(second_segment_path, grect_center_point(&bounds));
+  
+  // Init the mask path
+  mask_path = gpath_create(&Mask);
+  gpath_move_to(mask_path, grect_center_point(&bounds));
   
   tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
