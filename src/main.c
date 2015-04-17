@@ -50,8 +50,8 @@ const GPathInfo Mask = {
 const GPathInfo Markers = {
   2,
   (GPoint []) {
-    {0, 70},
-    {0, 73}
+    {0, 65},
+    {0, 70}
   }
 };
 
@@ -60,11 +60,11 @@ static GPath *mask_path;
 static GPath *markers_path;
 
 static int getQuadrant(int angle) {
-  if (angle<=90) {
+  if (angle<90) {
     return 1;
-  } else if (angle<=180) {
+  } else if (angle<180) {
     return 4;
-  } else if (angle<=270) {
+  } else if (angle<270) {
     return 3;
   } else {
     return 2;
@@ -126,7 +126,7 @@ static int getHalf(int angle) {
 static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_stroke_color(ctx, GColorDarkGray);
   int angle;
   
   for(angle = 0 ; angle < 360; angle += 30) {
@@ -159,6 +159,8 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 
   // Incorrect at 2:33pm; wrong until 2:40pm.
   // 5:25pm virtually invisible red (correct at 5:24 and 5:26)
+  // Incorrect at 6:31pm; angle on opposite side. Fixed by removing = in getQuadrant!
+  //   I can't believe that that change didn't introduce new bugs at other times, though....
   
   if (getHalf(minAngle) == getHalf(hourAngle)) {
     if (minAngle > hourAngle) {
@@ -184,7 +186,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   gpath_rotate_to(mask_path, (TRIG_MAX_ANGLE / 360) * (hourAngle + hourOffset));
   gpath_draw_filled(ctx, mask_path);
   
-  graphics_context_set_stroke_color(ctx, GColorYellow);
+  graphics_context_set_stroke_color(ctx, GColorWhite);
   
   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
   gpath_draw_outline(ctx, second_segment_path);
