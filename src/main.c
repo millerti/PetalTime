@@ -127,6 +127,8 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   graphics_fill_circle(ctx, center, 65);
 
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
+  graphics_context_set_antialiased(ctx, S_TRUE);
+  graphics_context_set_stroke_color(ctx, GColorClear);
   //what is this for? gpath_draw_filled(ctx, second_segment_path);
 
 //   APP_LOG(APP_LOG_LEVEL_DEBUG, "(TRIG_MAX_ANGLE / 360) * minAngle = %u", (TRIG_MAX_ANGLE / 360) * minAngle);
