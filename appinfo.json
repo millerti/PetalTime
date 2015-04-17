@@ -1,0 +1,23 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "t.michael.miller@gmail.com",
+    "longName": "Analog clock experiment",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "Analog clock experiment",
+    "targetPlatforms": [
+        "basalt"
+    ],
+    "uuid": "3b11b9e2-3f38-43b4-a411-04f8e8c11d2a",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": true
+    }
+}
