@@ -49,66 +49,66 @@ const GPathInfo Mask = {
 static GPath *second_segment_path;
 static GPath *mask_path;
 
-static int getQuadrant(int angle) {
-  if ((angle>0)&&(angle<=90)) {
-    return 1;
-  } else if ((angle>90)&&(angle<=180)) {
-    return 4;
-  } else if ((angle>180)&&(angle<=270)) {
-    return 3;
-  } else {
-    return 2;
-  }
-}
+// static int getQuadrant(int angle) {
+//   if ((angle>0)&&(angle<=90)) {
+//     return 1;
+//   } else if ((angle>90)&&(angle<=180)) {
+//     return 4;
+//   } else if ((angle>180)&&(angle<=270)) {
+//     return 3;
+//   } else {
+//     return 2;
+//   }
+// }
 
-// top half is 1, bottom half is 2
-static int getHemisphere(int quadrant) {
-  if (quadrant < 3) {
-    return 1;
-  } else {
-    return 2;
-  }
-}
+// // top half is 1, bottom half is 2
+// static int getHemisphere(int quadrant) {
+//   if (quadrant < 3) {
+//     return 1;
+//   } else {
+//     return 2;
+//   }
+// }
 
-// left half is 1, right half is 2
-static int getHalf(int quadrant) {
-  if ((quadrant == 2)||(quadrant == 3)) {
-    return 1;
-  } else {
-    return 2;
-  }
-}
+// // left half is 1, right half is 2
+// static int getHalf(int quadrant) {
+//   if ((quadrant == 2)||(quadrant == 3)) {
+//     return 1;
+//   } else {
+//     return 2;
+//   }
+// }
 
-static void drawSameQuadrantBlackout(int quadrant, int minAngle, int hourAngle) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawSameQuadrantBlackout");
-}
+// static void drawSameQuadrantBlackout(int quadrant, int minAngle, int hourAngle) {
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "drawSameQuadrantBlackout");
+// }
 
-static void drawHemisphereBlackout(int hemisphere, int minAngle, int hourAngle) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHemisphereBlackout");
-}
+// static void drawHemisphereBlackout(int hemisphere, int minAngle, int hourAngle) {
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHemisphereBlackout");
+// }
 
-static void drawHalfBlackout(int half, int minAngle, int hourAngle) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHalfBlackout");
-}
+// static void drawHalfBlackout(int half, int minAngle, int hourAngle) {
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHalfBlackout");
+// }
 
-static void drawBlackout(int minQuadrant, int hourQuadrant, int minAngle, int hourAngle) {
-  if (minQuadrant == hourQuadrant) {
-    // same quadrant
-    drawSameQuadrantBlackout(minQuadrant, minAngle, hourAngle);
+// static void drawBlackout(int minQuadrant, int hourQuadrant, int minAngle, int hourAngle) {
+//   if (minQuadrant == hourQuadrant) {
+//     // same quadrant
+//     drawSameQuadrantBlackout(minQuadrant, minAngle, hourAngle);
 
-  } else if (getHemisphere(minQuadrant) == getHemisphere(hourQuadrant)) {
-    // both top or both bottom
-    drawHemisphereBlackout(getHemisphere(minQuadrant), minAngle, hourAngle);
+//   } else if (getHemisphere(minQuadrant) == getHemisphere(hourQuadrant)) {
+//     // both top or both bottom
+//     drawHemisphereBlackout(getHemisphere(minQuadrant), minAngle, hourAngle);
 
-  } else if (getHalf(minQuadrant) == getHalf(hourQuadrant)) {
-    // both left or right
-    drawHalfBlackout(getHalf(minQuadrant), minAngle, hourAngle);
+//   } else if (getHalf(minQuadrant) == getHalf(hourQuadrant)) {
+//     // both left or right
+//     drawHalfBlackout(getHalf(minQuadrant), minAngle, hourAngle);
 
-  } else {
-    // caddycorner
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "caddycornerBlackout");
-  }
-}
+//   } else {
+//     // caddycorner
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "caddycornerBlackout");
+//   }
+// }
 
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 
@@ -117,7 +117,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 
   unsigned int secAngle = (t->tm_sec + 1) * 6;
   unsigned int minAngle = t->tm_min * 6;
-  unsigned int hourAngle = (( t->tm_hour % 12 ) * 30) + (t->tm_min / 2);
+  unsigned int hourAngle = (( t->tm_hour % 12 ) * 30); //add back in to incorporate minutes + (t->tm_min / 2);
 
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
@@ -127,7 +127,6 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   graphics_fill_circle(ctx, center, 65);
 
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
-  graphics_context_set_antialiased(ctx, S_TRUE);
   graphics_context_set_stroke_color(ctx, GColorClear);
   //what is this for? gpath_draw_filled(ctx, second_segment_path);
 
