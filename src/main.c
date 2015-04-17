@@ -39,11 +39,11 @@ const GPathInfo SECOND_SEGMENT_PATH_POINTS = {
 static GPath *second_segment_path;
 
 static int getQuadrant(int angle) {
-  if ((angle>0)&&(angle<=90)) {
+  if (angle<=90) {
     return 1;
-  } else if ((angle>90)&&(angle<=180)) {
+  } else if (angle<=180) {
     return 4;
-  } else if ((angle>180)&&(angle<=270)) {
+  } else if (angle<=270) {
     return 3;
   } else {
     return 2;
@@ -68,18 +68,6 @@ static int getHalf(int quadrant) {
   }
 }
 
-static void drawSameQuadrantBlackout(int quadrant, int minAngle, int hourAngle) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawSameQuadrantBlackout");
-}
-
-static void drawHemisphereBlackout(int hemisphere, int minAngle, int hourAngle) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHemisphereBlackout");
-}
-
-static void drawHalfBlackout(int half, int minAngle, int hourAngle) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHalfBlackout");
-}
-
 static void drawBlackout(int minQuadrant, int hourQuadrant, int minAngle, int hourAngle) {
   if (minQuadrant == hourQuadrant) {
     // same quadrant
@@ -97,6 +85,18 @@ static void drawBlackout(int minQuadrant, int hourQuadrant, int minAngle, int ho
     // caddycorner
     APP_LOG(APP_LOG_LEVEL_DEBUG, "caddycornerBlackout");
   }
+}
+
+static void drawSameQuadrantBlackout(int quadrant, int minAngle, int hourAngle) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawSameQuadrantBlackout");
+}
+
+static void drawHemisphereBlackout(int hemisphere, int minAngle, int hourAngle) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHemisphereBlackout");
+}
+
+static void drawHalfBlackout(int half, int minAngle, int hourAngle) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHalfBlackout");
 }
 
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
