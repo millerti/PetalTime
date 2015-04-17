@@ -1,8 +1,8 @@
 #include <pebble.h>
 
-// static int getQuadrant(int angle);
+static int getQuadrant(int angle);
 // static int getHemisphere(int quadrant);
-// static int getHalf(int quadrant);
+static int getHalf(int quadrant);
 
 // static void drawBlackout(int minQuadrant, int hourQuadrant, int minAngle, int hourAngle);
 // static void drawSameQuadrantBlackout(int quadrant, int minAngle, int hourAngle);
