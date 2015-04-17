@@ -21,6 +21,7 @@ static GColor FOREGROUND_COLOR; // = GColorWhite;
 
 Window *window;
 Layer *watchface_layer;
+Layer *markers_layer;
 
 // static GPoint center = {0, 0};
 // GPoint second = {0, 0};
@@ -31,7 +32,7 @@ const GPathInfo SECOND_SEGMENT_PATH_POINTS = {
   2,
   (GPoint []) {
     {0, 0},
-    {0, -70}, // 70 = radius + fudge; 7 = 70*tan(6 degrees); 6 degrees per minute;
+    {0, -70} // 70 = radius + fudge; 7 = 70*tan(6 degrees); 6 degrees per minute;
     // {3,  -70},
   }
 };
@@ -40,14 +41,23 @@ const GPathInfo Mask = {
   4,
   (GPoint []) {
     {0, 70},
-    {0, -70}, // 70 = radius + fudge; 7 = 70*tan(6 degrees); 6 degrees per minute;
+    {0, -70},
     {-70,  -70},
     {-70, 70}
   }
 };
 
+const GPathInfo Markers = {
+  2,
+  (GPoint []) {
+    {0, 70},
+    {0, 73}
+  }
+};
+
 static GPath *second_segment_path;
 static GPath *mask_path;
+static GPath *markers_path;
 
 static int getQuadrant(int angle) {
   if (angle<=90) {
@@ -112,6 +122,20 @@ static int getHalf(int angle) {
 //   }
 // }
 
+
+static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  GPoint center = grect_center_point(&bounds);
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  int angle;
+  
+  for(angle = 0 ; angle < 360; angle += 30) {
+
+    gpath_rotate_to(markers_path, (TRIG_MAX_ANGLE / 360) * angle);
+    gpath_draw_outline(ctx, markers_path);
+  }
+}
+
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   int hourOffset = 0;
   int minOffset = 0;
@@ -132,6 +156,9 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   graphics_context_set_stroke_color(ctx, GColorClear);
+
+  // Incorrect at 2:33pm; wrong until 2:40pm.
+  // 5:25pm virtually invisible red (correct at 5:24 and 5:26)
   
   if (getHalf(minAngle) == getHalf(hourAngle)) {
     if (minAngle > hourAngle) {
@@ -140,6 +167,14 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
     } else {
       hourOffset = 180;
       minOffset = 0;
+    }
+  } else { 
+    if (minAngle > hourAngle) {
+      hourOffset = 180;
+      minOffset = 0;
+    } else {
+      hourOffset = 0;
+      minOffset = 180;
     }
   }
 
@@ -305,6 +340,16 @@ static void init(void) {
   mask_path = gpath_create(&Mask);
   gpath_move_to(mask_path, grect_center_point(&bounds));
   
+  // Init the markers path
+  markers_path = gpath_create(&Markers);
+  gpath_move_to(markers_path, grect_center_point(&bounds));
+  
+  // Init the layer for the markers display
+  markers_layer = layer_create(bounds);
+  layer_set_update_proc(markers_layer, markers_layer_update_callback);
+  layer_add_child(window_layer, markers_layer);  
+  
+  
   tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
@@ -314,6 +359,7 @@ static void deinit(void) {
   tick_timer_service_unsubscribe();
   window_destroy(window);
   layer_destroy(watchface_layer);
+  layer_destroy(markers_layer);
 }
 
 int main(void) {
