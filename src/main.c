@@ -19,14 +19,79 @@ static bool INVERT = false;
 static GColor BACKGROUND_COLOR; //= GColorBlack;
 static GColor FOREGROUND_COLOR; // = GColorWhite;
 
+static GColor MinHourPetalColor;
+static GColor SecondHandColor;
+
 Window *window;
 Layer *watchface_layer;
 Layer *markers_layer;
 
-// static GPoint center = {0, 0};
-// GPoint second = {0, 0};
-// GPoint minute = {0, 0};
-// GPoint hour = {0, 0};
+static GColor GColors[64] = {
+        (GColor) GColorBlackARGB8, 
+        (GColor) GColorOxfordBlueARGB8, 
+        (GColor) GColorDukeBlueARGB8, 
+        (GColor) GColorBlueARGB8, 
+        (GColor) GColorDarkGreenARGB8, 
+        (GColor) GColorMidnightGreenARGB8, 
+        (GColor) GColorCobaltBlueARGB8, 
+        (GColor) GColorBlueMoonARGB8, 
+        (GColor) GColorIslamicGreenARGB8, 
+        (GColor) GColorJaegerGreenARGB8, 
+        (GColor) GColorTiffanyBlueARGB8, 
+        (GColor) GColorVividCeruleanARGB8, 
+        (GColor) GColorGreenARGB8, 
+        (GColor) GColorMalachiteARGB8, 
+        (GColor) GColorMediumSpringGreenARGB8, 
+        (GColor) GColorCyanARGB8, 
+        (GColor) GColorBulgarianRoseARGB8, 
+        (GColor) GColorImperialPurpleARGB8, 
+        (GColor) GColorIndigoARGB8, 
+        (GColor) GColorElectricUltramarineARGB8, 
+        (GColor) GColorArmyGreenARGB8, 
+        (GColor) GColorDarkGrayARGB8, 
+        (GColor) GColorLibertyARGB8, 
+        (GColor) GColorVeryLightBlueARGB8, 
+        (GColor) GColorKellyGreenARGB8, 
+        (GColor) GColorMayGreenARGB8, 
+        (GColor) GColorCadetBlueARGB8, 
+        (GColor) GColorPictonBlueARGB8, 
+        (GColor) GColorBrightGreenARGB8, 
+        (GColor) GColorScreaminGreenARGB8, 
+        (GColor) GColorMediumAquamarineARGB8, 
+        (GColor) GColorElectricBlueARGB8, 
+        (GColor) GColorDarkCandyAppleRedARGB8, 
+        (GColor) GColorJazzberryJamARGB8, 
+        (GColor) GColorPurpleARGB8, 
+        (GColor) GColorVividVioletARGB8, 
+        (GColor) GColorWindsorTanARGB8, 
+        (GColor) GColorRoseValeARGB8, 
+        (GColor) GColorPurpureusARGB8, 
+        (GColor) GColorLavenderIndigoARGB8, 
+        (GColor) GColorLimerickARGB8, 
+        (GColor) GColorBrassARGB8, 
+        (GColor) GColorLightGrayARGB8, 
+        (GColor) GColorBabyBlueEyesARGB8, 
+        (GColor) GColorSpringBudARGB8, 
+        (GColor) GColorInchwormARGB8, 
+        (GColor) GColorMintGreenARGB8, 
+        (GColor) GColorCelesteARGB8, 
+        (GColor) GColorRedARGB8, 
+        (GColor) GColorFollyARGB8, 
+        (GColor) GColorFashionMagentaARGB8, 
+        (GColor) GColorMagentaARGB8, 
+        (GColor) GColorOrangeARGB8, 
+        (GColor) GColorSunsetOrangeARGB8, 
+        (GColor) GColorBrilliantRoseARGB8, 
+        (GColor) GColorShockingPinkARGB8, 
+        (GColor) GColorChromeYellowARGB8, 
+        (GColor) GColorRajahARGB8, 
+        (GColor) GColorMelonARGB8, 
+        (GColor) GColorRichBrilliantLavenderARGB8, 
+        (GColor) GColorYellowARGB8, 
+        (GColor) GColorIcterineARGB8, 
+        (GColor) GColorPastelYellowARGB8, 
+        (GColor) GColorWhiteARGB8
+};
 
 const GPathInfo SECOND_SEGMENT_PATH_POINTS = {
   2,
@@ -40,17 +105,17 @@ const GPathInfo SECOND_SEGMENT_PATH_POINTS = {
 const GPathInfo Mask = {
   4,
   (GPoint []) {
-    {0, 70},
-    {0, -70},
-    {-70,  -70},
-    {-70, 70}
+    {0, 69},
+    {0, -69},
+    {-69,  -69},
+    {-69, 69}
   }
 };
 
 const GPathInfo Markers = {
   2,
   (GPoint []) {
-    {0, 65},
+    {0, 66},
     {0, 70}
   }
 };
@@ -145,12 +210,12 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 
   unsigned int secAngle = (t->tm_sec + 1) * 6;
   unsigned int minAngle = t->tm_min * 6;
-  unsigned int hourAngle = (( t->tm_hour % 12 ) * 30); //add back in to incorporate minutes hour hand + (t->tm_min / 2);
+  unsigned int hourAngle = (( t->tm_hour % 12 ) * 30) + (t->tm_min / 2);
 
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
 
-  graphics_context_set_fill_color(ctx, FOREGROUND_COLOR);
+  graphics_context_set_fill_color(ctx, MinHourPetalColor);
 
   graphics_fill_circle(ctx, center, 65);
 
@@ -161,6 +226,9 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   // 5:25pm virtually invisible red (correct at 5:24 and 5:26)
   // Incorrect at 6:31pm; angle on opposite side. Fixed by removing = in getQuadrant!
   //   I can't believe that that change didn't introduce new bugs at other times, though....
+  // Incorrect at about 8:10pm... slowly noticed that the wrong sides were moving.
+  // Incorrect at 5:32pm
+  // Incorrect at 8:29 PM, correct again at 8:30pm (with precise hour hand so bear that in mind)
   
   if (getHalf(minAngle) == getHalf(hourAngle)) {
     if (minAngle > hourAngle) {
@@ -186,7 +254,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   gpath_rotate_to(mask_path, (TRIG_MAX_ANGLE / 360) * (hourAngle + hourOffset));
   gpath_draw_filled(ctx, mask_path);
   
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_stroke_color(ctx, SecondHandColor);
   
   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
   gpath_draw_outline(ctx, second_segment_path);
@@ -310,17 +378,24 @@ static void init(void) {
   app_message_register_inbox_received(in_received_handler);
   app_message_register_inbox_dropped(in_dropped_handler);
   app_message_open(64, 0);
-
+  
+  srand(time(NULL));
+  int randInt = rand() * 64;
+  MinHourPetalColor = GColors[randInt];
+  randInt = rand() * 64;
+  SecondHandColor = GColors[randInt];
+  BACKGROUND_COLOR = GColorBlack;
+  
   if(persist_exists(KEY_INVERT)) INVERT = persist_read_bool(KEY_INVERT);
   
-  if(INVERT) {
-    BACKGROUND_COLOR = GColorWhite;
-    FOREGROUND_COLOR = GColorBlack;
-  }
-  else {
-    BACKGROUND_COLOR = GColorBlack;
-    FOREGROUND_COLOR = GColorRed;        
-  }
+//   if(INVERT) {
+//     BACKGROUND_COLOR = GColorWhite;
+//     FOREGROUND_COLOR = GColorBlack;
+//   }
+//   else {
+//     BACKGROUND_COLOR = GColorBlack;
+//     FOREGROUND_COLOR = GColorRed;        
+//   }
   
   window = window_create();
   window_set_background_color(window, BACKGROUND_COLOR);
