@@ -6,7 +6,8 @@
  */
 
 #include <main.h>
-
+#include <time.h>
+  
 enum {
         KEY_TIME = 0x0,
         KEY_DATE = 0x1,
@@ -14,19 +15,22 @@ enum {
         KEY_INVERT = 0x3
 };
 
-static bool INVERT = false;
+// static bool INVERT = false;
 
-static GColor BACKGROUND_COLOR; //= GColorBlack;
-static GColor FOREGROUND_COLOR; // = GColorWhite;
+GColor BACKGROUND_COLOR; //= GColorBlack;
+// static GColor FOREGROUND_COLOR; // = GColorWhite;
 
-static GColor MinHourPetalColor;
-static GColor SecondHandColor;
+GColor MinHourPetalColor;
+GColor SecondHandColor;
+GColor MarkersColor;
 
 Window *window;
 Layer *watchface_layer;
 Layer *markers_layer;
 
-static GColor GColors[64] = {
+#define NUM_COLORS 64
+
+static GColor GColors[NUM_COLORS] = {
         (GColor) GColorBlackARGB8, 
         (GColor) GColorOxfordBlueARGB8, 
         (GColor) GColorDukeBlueARGB8, 
@@ -137,13 +141,15 @@ static int getQuadrant(int angle) {
 }
 
 // // top half is 1, bottom half is 2
-// static int getHemisphere(int quadrant) {
-//   if (quadrant < 3) {
-//     return 1;
-//   } else {
-//     return 2;
-//   }
-// }
+static int getHemisphere(int angle) {
+  int quadrant = getQuadrant(angle);
+  
+  if (quadrant < 3) {
+    return 1;
+  } else {
+    return 2;
+  }
+}
 
 // left half is 1, right half is 2
 static int getHalf(int angle) {
@@ -156,42 +162,35 @@ static int getHalf(int angle) {
   }
 }
 
-// static void drawSameQuadrantBlackout(int quadrant, int minAngle, int hourAngle) {
-//   APP_LOG(APP_LOG_LEVEL_DEBUG, "drawSameQuadrantBlackout");
-// }
+static void click_config_provider(void *context) {
+  window_single_click_subscribe(BUTTON_ID_BACK, click_handler);
+  //window_single_click_subscribe(BUTTON_ID_DOWN, click_handler);
+  //window_single_click_subscribe(BUTTON_ID_SELECT, click_handler);
+}
 
-// static void drawHemisphereBlackout(int hemisphere, int minAngle, int hourAngle) {
-//   APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHemisphereBlackout");
-// }
+static void click_handler(ClickRecognizerRef recognizer, void *context) {
+  updateColors();
+}
 
-// static void drawHalfBlackout(int half, int minAngle, int hourAngle) {
-//   APP_LOG(APP_LOG_LEVEL_DEBUG, "drawHalfBlackout");
-// }
-
-// static void drawBlackout(int minQuadrant, int hourQuadrant, int minAngle, int hourAngle) {
-//   if (minQuadrant == hourQuadrant) {
-//     // same quadrant
-//     drawSameQuadrantBlackout(minQuadrant, minAngle, hourAngle);
-
-//   } else if (getHemisphere(minQuadrant) == getHemisphere(hourQuadrant)) {
-//     // both top or both bottom
-//     drawHemisphereBlackout(getHemisphere(minQuadrant), minAngle, hourAngle);
-
-//   } else if (getHalf(minQuadrant) == getHalf(hourQuadrant)) {
-//     // both left or right
-//     drawHalfBlackout(getHalf(minQuadrant), minAngle, hourAngle);
-
-//   } else {
-//     // caddycorner
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "caddycornerBlackout");
-//   }
-// }
-
+static void updateColors() {
+  int randInt = rand() % NUM_COLORS;
+  MinHourPetalColor = GColors[randInt];
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "MinHourPetalColor index: %u", randInt);
+  randInt = rand() % NUM_COLORS;
+  SecondHandColor = GColors[randInt];
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "SecondHandColor index: %u", randInt);
+  randInt = rand() % NUM_COLORS;
+  BACKGROUND_COLOR = GColors[randInt];
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "BackgroundColor index: %u", randInt);
+  randInt = rand() % NUM_COLORS;
+  MarkersColor = GColors[randInt];
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "MarkersColor index: %u", randInt);
+}
 
 static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
-  GRect bounds = layer_get_bounds(layer);
-  GPoint center = grect_center_point(&bounds);
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+//   GRect bounds = layer_get_bounds(layer);
+//   GPoint center = grect_center_point(&bounds);
+  graphics_context_set_stroke_color(ctx, MarkersColor); //GColorDarkGray
   int angle;
   
   for(angle = 0 ; angle < 360; angle += 30) {
@@ -221,16 +220,22 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   graphics_context_set_stroke_color(ctx, GColorClear);
-
-  // Incorrect at 2:33pm; wrong until 2:40pm.
-  // 5:25pm virtually invisible red (correct at 5:24 and 5:26)
-  // Incorrect at 6:31pm; angle on opposite side. Fixed by removing = in getQuadrant!
-  //   I can't believe that that change didn't introduce new bugs at other times, though....
-  // Incorrect at about 8:10pm... slowly noticed that the wrong sides were moving.
-  // Incorrect at 5:32pm
-  // Incorrect at 8:29 PM, correct again at 8:30pm (with precise hour hand so bear that in mind)
+  
+  if (secAngle <= 8) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "------------------------------------");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "minAngle:  %u", minAngle);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourAngle: %u", hourAngle);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "minQuadrant:  %u", getQuadrant(minAngle));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourQuadrant: %u", getQuadrant(hourAngle));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "minHalf:  %u", getHalf(minAngle));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHalf: %u", getHalf(hourAngle));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "minHemis:  %u", getHemisphere(minAngle));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHemis: %u", getHemisphere(hourAngle));
+  }
   
   if (getHalf(minAngle) == getHalf(hourAngle)) {
+    //Both on same half, either top or bottom quadrant
+    //Pretty sure this is right
     if (minAngle > hourAngle) {
       hourOffset = 0;
       minOffset = 180;
@@ -239,12 +244,45 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
       minOffset = 0;
     }
   } else { 
-    if (minAngle > hourAngle) {
-      hourOffset = 180;
-      minOffset = 0;
+    if (getHemisphere(minAngle) == getHemisphere(hourAngle)) {
+      if (getHemisphere(minAngle) == 1) {
+        //Both on top, opposite quadrants
+        if (minAngle > hourAngle) {
+          // 12:51pm correct with hourOffset=180 and minOffset=0. BUT WHY?
+          hourOffset = 180;
+          minOffset = 0;
+        } else {
+          hourOffset = 180;
+          minOffset = 0;
+        }
+      } else {
+        //Both on bottom, opposite quadrants
+        if (minAngle > hourAngle) {
+          hourOffset = 180;
+          minOffset = 0;
+        } else {
+          hourOffset = 0;
+          minOffset = 180;
+        }
+      }
     } else {
-      hourOffset = 0;
-      minOffset = 180;
+      //Caddy-corner quadrants
+      //Not great
+      if ((minAngle-hourAngle) > 180) {
+        // Correct at 12:33pm (it flipped between 12:32 and 12:33 correctly!)
+        hourOffset = 180;
+        minOffset = 0;
+      } else if ((minAngle-hourAngle) > 0) {
+        // Correct at 12:32pm and 1:31pm!
+        hourOffset = 0;
+        minOffset = 180;
+      } else if (abs(minAngle-hourAngle) > 180) {
+        hourOffset = 0;
+        minOffset = 180;
+      } else {
+        hourOffset = 180;
+        minOffset = 180;
+      }
     }
   }
 
@@ -352,21 +390,21 @@ static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
 }
 
  void in_received_handler(DictionaryIterator *received, void *context) {
-   Tuple *invert_tuple = dict_find(received, KEY_INVERT);
+//    Tuple *invert_tuple = dict_find(received, KEY_INVERT);
    
-   INVERT = invert_tuple->value->int8 ? true : false;
-   persist_write_bool(KEY_INVERT, INVERT);
-   if(INVERT)
-   {
-    BACKGROUND_COLOR = GColorWhite;
-    FOREGROUND_COLOR = GColorBlack;
-   }
-   else
-   {
-    BACKGROUND_COLOR = GColorBlack;
-    FOREGROUND_COLOR = GColorRed;        
-   }
-   window_set_background_color(window, BACKGROUND_COLOR);
+//    INVERT = invert_tuple->value->int8 ? true : false;
+//    persist_write_bool(KEY_INVERT, INVERT);
+//    if(INVERT)
+//    {
+//     BACKGROUND_COLOR = GColorWhite;
+//     FOREGROUND_COLOR = GColorBlack;
+//    }
+//    else
+//    {
+//     BACKGROUND_COLOR = GColorBlack;
+//     FOREGROUND_COLOR = GColorRed;        
+//    }
+//    window_set_background_color(window, BACKGROUND_COLOR);
  }
 
 
@@ -379,23 +417,9 @@ static void init(void) {
   app_message_register_inbox_dropped(in_dropped_handler);
   app_message_open(64, 0);
   
-  srand(time(NULL));
-  int randInt = rand() * 64;
-  MinHourPetalColor = GColors[randInt];
-  randInt = rand() * 64;
-  SecondHandColor = GColors[randInt];
+  srand( time(NULL) );
   BACKGROUND_COLOR = GColorBlack;
-  
-  if(persist_exists(KEY_INVERT)) INVERT = persist_read_bool(KEY_INVERT);
-  
-//   if(INVERT) {
-//     BACKGROUND_COLOR = GColorWhite;
-//     FOREGROUND_COLOR = GColorBlack;
-//   }
-//   else {
-//     BACKGROUND_COLOR = GColorBlack;
-//     FOREGROUND_COLOR = GColorRed;        
-//   }
+  updateColors();
   
   window = window_create();
   window_set_background_color(window, BACKGROUND_COLOR);
@@ -404,6 +428,8 @@ static void init(void) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
+  window_set_click_config_provider(window, click_config_provider); 
+  
   // Init the layer for the second display
   watchface_layer = layer_create(bounds);
   layer_set_update_proc(watchface_layer, watchface_layer_update_callback);
@@ -426,13 +452,14 @@ static void init(void) {
   layer_set_update_proc(markers_layer, markers_layer_update_callback);
   layer_add_child(window_layer, markers_layer);  
   
-  
   tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
 static void deinit(void) {
   gpath_destroy(second_segment_path);
-
+  gpath_destroy(markers_path);
+  gpath_destroy(mask_path);
+  
   tick_timer_service_unsubscribe();
   window_destroy(window);
   layer_destroy(watchface_layer);
