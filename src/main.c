@@ -258,8 +258,9 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
       } else {
         //Both on bottom, opposite quadrants
         if (minAngle > hourAngle) {
-          hourOffset = 180;
-          minOffset = 0;
+          // 3:31pm incorrect when hourOffset=180 and minOffset=0. Correct when it's the opposite. BUT WHY???
+          hourOffset = 0;
+          minOffset = 180;
         } else {
           hourOffset = 0;
           minOffset = 180;
@@ -269,7 +270,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
       //Caddy-corner quadrants
       //Not great
       if ((minAngle-hourAngle) > 180) {
-        // Correct at 12:33pm (it flipped between 12:32 and 12:33 correctly!)
+        // Correct at 12:33pm (it flipped between 12:32 and 12:33 correctly!) and 1:40pm
         hourOffset = 180;
         minOffset = 0;
       } else if ((minAngle-hourAngle) > 0) {
