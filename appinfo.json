@@ -1,7 +1,7 @@
 {
     "appKeys": {},
     "capabilities": [
-        ""
+        "configurable"
     ],
     "companyName": "t.michael.miller@gmail.com",
     "longName": "PetalTime",
