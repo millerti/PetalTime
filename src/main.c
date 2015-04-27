@@ -164,8 +164,6 @@ static int getHalf(int angle) {
 
 static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_BACK, click_handler);
-  //window_single_click_subscribe(BUTTON_ID_DOWN, click_handler);
-  //window_single_click_subscribe(BUTTON_ID_SELECT, click_handler);
 }
 
 static void click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -188,13 +186,10 @@ static void updateColors() {
 }
 
 static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
-//   GRect bounds = layer_get_bounds(layer);
-//   GPoint center = grect_center_point(&bounds);
   graphics_context_set_stroke_color(ctx, MarkersColor); //GColorDarkGray
   int angle;
   
   for(angle = 0 ; angle < 360; angle += 30) {
-
     gpath_rotate_to(markers_path, (TRIG_MAX_ANGLE / 360) * angle);
     gpath_draw_outline(ctx, markers_path);
   }
@@ -204,12 +199,16 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   int hourOffset = 0;
   int minOffset = 0;
   
-  time_t now = time(NULL);
-  struct tm *t = localtime(&now);
+  //time_t now = time(NULL);
+  //struct tm *t = localtime(&now);
 
-  unsigned int secAngle = (t->tm_sec + 1) * 6;
-  unsigned int minAngle = t->tm_min * 6;
-  unsigned int hourAngle = (( t->tm_hour % 12 ) * 30) + (t->tm_min / 2);
+  int secs = 1; //t->tm_sec;
+  int mins = 19; //t->tm_min;
+  int hours = 11; //t->tm_hour;
+  
+  unsigned int secAngle = (secs + 1) * 6;
+  unsigned int minAngle = mins * 6;
+  unsigned int hourAngle = (( hours % 12 ) * 30) + (mins / 2);
 
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
@@ -221,7 +220,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   graphics_context_set_stroke_color(ctx, GColorClear);
   
-  if (secAngle <= 8) {
+  if (secs == 1) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "------------------------------------");
     APP_LOG(APP_LOG_LEVEL_DEBUG, "minAngle:  %u", minAngle);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourAngle: %u", hourAngle);
@@ -237,9 +236,11 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
     //Both on same half, either top or bottom quadrant
     //Pretty sure this is right
     if (minAngle > hourAngle) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 1");
       hourOffset = 0;
       minOffset = 180;
     } else {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 2");
       hourOffset = 180;
       minOffset = 0;
     }
@@ -248,40 +249,52 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
       if (getHemisphere(minAngle) == 1) {
         //Both on top, opposite quadrants
         if (minAngle > hourAngle) {
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 3");
           // 12:51pm correct with hourOffset=180 and minOffset=0. BUT WHY?
           hourOffset = 180;
           minOffset = 0;
         } else {
-          hourOffset = 180;
-          minOffset = 0;
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 4");
+          // 10:00pm incorrect with hourOffset=180 and minOffset=0. Correct when flipped.
+          hourOffset = 0;
+          minOffset = 180;
         }
       } else {
         //Both on bottom, opposite quadrants
         if (minAngle > hourAngle) {
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 5");
           // 3:31pm incorrect when hourOffset=180 and minOffset=0. Correct when it's the opposite. BUT WHY???
           hourOffset = 0;
           minOffset = 180;
         } else {
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 6");
           hourOffset = 0;
           minOffset = 180;
         }
       }
     } else {
       //Caddy-corner quadrants
-      //Not great
+      // Something's wrong at 11:27pm?
       if ((minAngle-hourAngle) > 180) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 7");
         // Correct at 12:33pm (it flipped between 12:32 and 12:33 correctly!) and 1:40pm
+        // INcorrect at 11:19am though! Do we need a switch on quadrant?! lol omg
+        // But it's correct again as soon as it's 11:27 or so....
         hourOffset = 180;
         minOffset = 0;
       } else if ((minAngle-hourAngle) > 0) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 8");
         // Correct at 12:32pm and 1:31pm!
         hourOffset = 0;
         minOffset = 180;
       } else if (abs(minAngle-hourAngle) > 180) {
-        hourOffset = 0;
-        minOffset = 180;
-      } else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 9");
+        // I think switching to hourOffset=180 and minOffset=0 fixed this at 10:20
         hourOffset = 180;
+        minOffset = 0;
+      } else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 10");
+        hourOffset = 0;
         minOffset = 180;
       }
     }
@@ -297,100 +310,20 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   
   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
   gpath_draw_outline(ctx, second_segment_path);
-//   int minQuadrant = getQuadrant(minAngle);
-//   int hourQuadrant = getQuadrant(hourAngle);
-
-//   drawBlackout(minQuadrant, hourQuadrant, minAngle, hourAngle);
-
-  // struct GPathInfo blackoutPath;
-  // GPoint blackoutPoints [5];
-  // blackoutPoints.points = blackoutPoints;
-
-  // GPath blackout = gpath_create(&SECOND_SEGMENT_PATH_POINTS);
-  // what's this for? gpath_move_to(second_segment_path, grect_center_point(&bounds));
-  // gpath_destroy(blackout);
-
-//   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * minAngle);
-//   gpath_draw_outline(ctx, second_segment_path);
-//   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * hourAngle);
-//   gpath_draw_outline(ctx, second_segment_path);
-
 }
 
-
-// static void minute_display_layer_update_callback(Layer *layer, GContext* ctx) {
-
-//   time_t now = time(NULL);
-//   struct tm *t = localtime(&now);
-
-//   unsigned int angle = t->tm_min * 6;
-
-//   GRect bounds = layer_get_bounds(layer);
-//   GPoint center = grect_center_point(&bounds);
-
-//   graphics_context_set_fill_color(ctx, FOREGROUND_COLOR);
-
-//   graphics_fill_circle(ctx, center, 55);
-
-//   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
-
-//   for(; angle < 355; angle += 6) {
-
-//     gpath_rotate_to(minute_segment_path, (TRIG_MAX_ANGLE / 360) * angle);
-
-//     gpath_draw_filled(ctx, minute_segment_path);
-
-//   }
-
-//   graphics_fill_circle(ctx, center, 50);
-
-// }
-
-
-// static void hour_display_layer_update_callback(Layer *layer, GContext* ctx) {
-
-//   time_t now = time(NULL);
-//   struct tm *t = localtime(&now);
-
-//   unsigned int angle;
-
-// /*
 //   #if TWENTY_FOUR_HOUR_DIAL
 //     angle = (t->tm_hour * 15) + (t->tm_min / 4);
 //   #else
 //     angle = (( t->tm_hour % 12 ) * 30) + (t->tm_min / 2);
 //   #endif
 // */
-  
-//   angle = (( t->tm_hour % 12 ) * 30); // + (t->tm_min / 2);
-    
-//   angle = angle - (angle % 6);
-
-//   GRect bounds = layer_get_bounds(layer);
-//   GPoint center = grect_center_point(&bounds);
-
-//   graphics_context_set_fill_color(ctx, FOREGROUND_COLOR);
-
-//   graphics_fill_circle(ctx, center, 45);
-
-//   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
-
-//   for(; angle < 355; angle += 6) {
-
-//     gpath_rotate_to(hour_segment_path, (TRIG_MAX_ANGLE / 360) * angle);
-
-//     gpath_draw_filled(ctx, hour_segment_path);
-//   }
-
-//   graphics_fill_circle(ctx, center, 40);
-// }
-
 
 static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
   layer_mark_dirty(watchface_layer);
 }
 
- void in_received_handler(DictionaryIterator *received, void *context) {
+void in_received_handler(DictionaryIterator *received, void *context) {
 //    Tuple *invert_tuple = dict_find(received, KEY_INVERT);
    
 //    INVERT = invert_tuple->value->int8 ? true : false;
@@ -408,10 +341,9 @@ static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
 //    window_set_background_color(window, BACKGROUND_COLOR);
  }
 
-
- void in_dropped_handler(AppMessageResult reason, void *context) {
+void in_dropped_handler(AppMessageResult reason, void *context) {
    // incoming message dropped
- }
+}
 
 static void init(void) {  
   app_message_register_inbox_received(in_received_handler);
