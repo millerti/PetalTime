@@ -29,6 +29,7 @@ Layer *watchface_layer;
 Layer *markers_layer;
 
 #define NUM_COLORS 64
+#define NUM_TEST_CASES 16
 
 static GColor GColors[NUM_COLORS] = {
         (GColor) GColorBlackARGB8, 
@@ -124,6 +125,26 @@ const GPathInfo Markers = {
   }
 };
 
+//structure is hours, mins, secs
+const int testCases[NUM_TEST_CASES][3] = {
+  { 1, 25, 0 },  // right side
+  { 5, 5, 0 },   // right side inverted
+  { 7, 55, 0 },  // left side
+  { 11, 35, 0 }, // left side inverted
+  { 2, 50, 0 },  // top side
+  { 10, 10, 0 }, // top side inverted
+  { 4, 40, 0 },  // bottom side
+  { 8, 20, 0 },  // bottom side inverted
+  { 2, 35, 0 },  // catty-corner 1-3 with lower-right concavity, hour in 1
+  { 7, 10, 0 },  // catty-corner 1-3 with lower-right concavity, hour in 3
+  { 1, 42, 0 },  // catty-corner 1-3 with upper-left concavity, hour in 1
+  { 8, 2, 0},    // catty-corner 1-3 with upper-left concavity, hour in 3
+  { 11, 17, 0 }, // catty-corner 2-4 with upper-right concavity, hour in 2
+  { 3, 55, 0 },  // catty-corner 2-4 with upper-right concavity, hour in 4
+  { 9, 25, 0 },  // catty-corner 2-4 with lower-left concavity, hour in 2
+  { 5, 50, 0},   // catty-corner 2-4 with lower-left concavity, hour in 4
+}
+
 static GPath *second_segment_path;
 static GPath *mask_path;
 static GPath *markers_path;
@@ -195,16 +216,28 @@ static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
   }
 }
 
+static void getNextTestCase(int *testCase, int * hours, int * mins, int * secs) {
+  *testCase = (*testCase + 1) % NUM_TEST_CASES;
+  *hours = testCases[*testCase][1];
+  *mins = testCases[*testCase][2];
+  *secs = testCases[*testCase][3];
+}
+
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   int hourOffset = 0;
   int minOffset = 0;
   
-  //time_t now = time(NULL);
-  //struct tm *t = localtime(&now);
+  time_t now = time(NULL);
+  struct tm *t = localtime(&now);
 
-  int secs = 1; //t->tm_sec;
-  int mins = 19; //t->tm_min;
-  int hours = 11; //t->tm_hour;
+  int secs = 0; // = 1; //t->tm_sec;
+  int mins = 0; // = 19; //t->tm_min;
+  int hours = 0; // = 11; //t->tm_hour;
+  int testCase = 15;
+
+  if ((t->tm_sec % 15) == 0) {
+    getNextTestCase(&testCase, &hours, &mins, &secs);
+  }
   
   unsigned int secAngle = (secs + 1) * 6;
   unsigned int minAngle = mins * 6;
