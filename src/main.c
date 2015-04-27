@@ -28,6 +28,12 @@ Window *window;
 Layer *watchface_layer;
 Layer *markers_layer;
 
+int secs = 0; // = 1; //t->tm_sec;
+int mins = 0; // = 19; //t->tm_min;
+int hours = 0; // = 11; //t->tm_hour;
+int testCase = -1;
+
+
 #define NUM_COLORS 64
 #define NUM_TEST_CASES 16
 
@@ -127,23 +133,23 @@ const GPathInfo Markers = {
 
 //structure is hours, mins, secs
 const int testCases[NUM_TEST_CASES][3] = {
-  { 1, 25, 0 },  // right side
-  { 5, 5, 0 },   // right side inverted
-  { 7, 55, 0 },  // left side
-  { 11, 35, 0 }, // left side inverted
-  { 2, 50, 0 },  // top side
-  { 10, 10, 0 }, // top side inverted
-  { 4, 40, 0 },  // bottom side
-  { 8, 20, 0 },  // bottom side inverted
-  { 2, 35, 0 },  // catty-corner 1-3 with lower-right concavity, hour in 1
-  { 7, 10, 0 },  // catty-corner 1-3 with lower-right concavity, hour in 3
-  { 1, 42, 0 },  // catty-corner 1-3 with upper-left concavity, hour in 1
-  { 8, 2, 0},    // catty-corner 1-3 with upper-left concavity, hour in 3
-  { 11, 17, 0 }, // catty-corner 2-4 with upper-right concavity, hour in 2
-  { 3, 55, 0 },  // catty-corner 2-4 with upper-right concavity, hour in 4
-  { 9, 25, 0 },  // catty-corner 2-4 with lower-left concavity, hour in 2
-  { 5, 50, 0},   // catty-corner 2-4 with lower-left concavity, hour in 4
-}
+  { 1, 25, 0 },  //  0 right side
+  { 5, 5, 0 },   //  1 right side inverted
+  { 7, 55, 0 },  //  2 left side
+  { 11, 35, 0 }, //  3 left side inverted
+  { 2, 50, 0 },  //  4 top side
+  { 10, 10, 0 }, //  5 top side inverted
+  { 4, 40, 0 },  //  6 bottom side
+  { 8, 20, 0 },  //  7 bottom side inverted  - Incorrect. Case 6.
+  { 2, 35, 0 },  //  8 catty-corner 1-3 with lower-right concavity, hour in 1
+  { 7, 10, 0 },  //  9 catty-corner 1-3 with lower-right concavity, hour in 3
+  { 1, 42, 0 },  // 10 catty-corner 1-3 with upper-left concavity, hour in 1
+  { 8, 2, 0},    // 11 catty-corner 1-3 with upper-left concavity, hour in 3 - Incorrect. Case 7.
+  { 11, 17, 0 }, // 12 catty-corner 2-4 with upper-right concavity, hour in 2 - Incorrect. Case 7. 
+  { 3, 55, 0 },  // 13 catty-corner 2-4 with upper-right concavity, hour in 4
+  { 9, 25, 0 },  // 14 catty-corner 2-4 with lower-left concavity, hour in 2
+  { 5, 50, 0}    // 15 catty-corner 2-4 with lower-left concavity, hour in 4
+};
 
 static GPath *second_segment_path;
 static GPath *mask_path;
@@ -218,9 +224,10 @@ static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
 
 static void getNextTestCase(int *testCase, int * hours, int * mins, int * secs) {
   *testCase = (*testCase + 1) % NUM_TEST_CASES;
-  *hours = testCases[*testCase][1];
-  *mins = testCases[*testCase][2];
-  *secs = testCases[*testCase][3];
+  *hours = testCases[*testCase][0];
+  *mins = testCases[*testCase][1];
+  *secs = testCases[*testCase][2];
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Test Case %u - %u:%u", *testCase, *hours, *mins);
 }
 
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
@@ -230,12 +237,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
 
-  int secs = 0; // = 1; //t->tm_sec;
-  int mins = 0; // = 19; //t->tm_min;
-  int hours = 0; // = 11; //t->tm_hour;
-  int testCase = 15;
-
-  if ((t->tm_sec % 15) == 0) {
+  if ((t->tm_sec % 5) == 0) {
     getNextTestCase(&testCase, &hours, &mins, &secs);
   }
   
@@ -301,8 +303,8 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
           minOffset = 180;
         } else {
           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 6");
-          hourOffset = 0;
-          minOffset = 180;
+          hourOffset = 180;
+          minOffset = 0;
         }
       }
     } else {
