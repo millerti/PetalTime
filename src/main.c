@@ -237,7 +237,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 
   secs = t->tm_sec;
   mins = t->tm_min;
-  hours = t->tm_hours;
+  hours = t->tm_hour;
   
 //   secs = 4;
 //   mins = (t->tm_sec * 5) % 60;
