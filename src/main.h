@@ -8,6 +8,7 @@ static int getHalf(int quadrant);
 // static void drawSameQuadrantBlackout(int quadrant, int minAngle, int hourAngle);
 // static void drawHemisphereBlackout(int hemisphere, int minAngle, int hourAngle);
 // static void drawHalfBlackout(int half, int minAngle, int hourAngle);
+static void getNextTestCase(int *testCase, int * hours, int * mins, int * secs);
 static void click_config_provider(void *context);
 static void click_handler(ClickRecognizerRef recognizer, void *context);
 static void updateColors();

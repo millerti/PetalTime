@@ -28,7 +28,13 @@ Window *window;
 Layer *watchface_layer;
 Layer *markers_layer;
 
+int secs = 0; // = 1; //t->tm_sec;
+int mins = 0; // = 19; //t->tm_min;
+int hours = 0; // = 11; //t->tm_hour;
+int testCase = 15;
+
 #define NUM_COLORS 64
+#define NUM_TEST_CASES 16
 
 static GColor GColors[NUM_COLORS] = {
         (GColor) GColorBlackARGB8, 
@@ -124,6 +130,26 @@ const GPathInfo Markers = {
   }
 };
 
+//structure is hours, mins, secs
+const int testCases[NUM_TEST_CASES][3] = {
+  { 1, 25, 0 },  // 0     right side
+  { 5, 5, 0 },   // 1     right side inverted
+  { 7, 55, 0 },  // 2     left side
+  { 11, 35, 0 }, // 3     left side inverted
+  { 2, 50, 0 },  // 4     top side
+  { 10, 10, 0 }, // 5     top side inverted
+  { 4, 40, 0 },  // 6     bottom side
+  { 8, 20, 0 },  // 7 6   bottom side inverted (hopefully fixed by flipping 6)
+  { 2, 35, 0 },  // 8     catty-corner 1-3 with lower-right concavity, hour in 1
+  { 7, 10, 0 },  // 9 10  catty-corner 1-3 with lower-right concavity, hour in 3 (hopefully fixed by flipping 10)
+  { 1, 42, 0 },  // 10    catty-corner 1-3 with upper-left concavity, hour in 1
+  { 8, 2, 0},    // 11 9  catty-corner 1-3 with upper-left concavity, hour in 3
+  { 11, 17, 0 }, // 12 9  catty-corner 2-4 with upper-right concavity, hour in 2
+  { 3, 55, 0 },  // 13    catty-corner 2-4 with upper-right concavity, hour in 4
+  { 9, 25, 0 },  // 14 10 catty-corner 2-4 with lower-left concavity, hour in 2 (hopefully fixed by flipping 10)
+  { 5, 50, 0}    // 15    catty-corner 2-4 with lower-left concavity, hour in 4
+};
+
 static GPath *second_segment_path;
 static GPath *mask_path;
 static GPath *markers_path;
@@ -163,7 +189,7 @@ static int getHalf(int angle) {
 }
 
 static void click_config_provider(void *context) {
-  window_single_click_subscribe(BUTTON_ID_BACK, click_handler);
+  //window_single_click_subscribe(BUTTON_ID_BACK, click_handler);
 }
 
 static void click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -195,20 +221,40 @@ static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
   }
 }
 
+static void getNextTestCase(int *testCase, int * hours, int * mins, int * secs) {
+  *testCase = (*testCase + 1) % NUM_TEST_CASES;
+  *hours = testCases[*testCase][0];
+  *mins = testCases[*testCase][1];
+  *secs = testCases[*testCase][2];
+}
+
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   int hourOffset = 0;
   int minOffset = 0;
   
-  //time_t now = time(NULL);
-  //struct tm *t = localtime(&now);
+  time_t now = time(NULL);
+  struct tm *t = localtime(&now);
 
-  int secs = 1; //t->tm_sec;
-  int mins = 19; //t->tm_min;
-  int hours = 11; //t->tm_hour;
+  secs = t->tm_sec;
+  mins = t->tm_min;
+  hours = t->tm_hours;
   
-  unsigned int secAngle = (secs + 1) * 6;
-  unsigned int minAngle = mins * 6;
-  unsigned int hourAngle = (( hours % 12 ) * 30) + (mins / 2);
+//   secs = 4;
+//   mins = (t->tm_sec * 5) % 60;
+  
+//   if (mins == 0) {
+//     hours = (hours + 1) % 12;
+//   }
+  
+//   if ((t->tm_sec % 10) == 0) {
+//     getNextTestCase(&testCase, &hours, &mins, &secs);
+
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "test case %d:  %d:%d", testCase, hours, mins);
+//   }
+  
+  signed int secAngle = (secs + 1) * 6;
+  signed int minAngle = mins * 6;
+  int hourAngle = (( hours % 12 ) * 30) + (mins / 2);
 
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
@@ -220,27 +266,28 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   graphics_context_set_stroke_color(ctx, GColorClear);
   
-  if (secs == 1) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "------------------------------------");
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "minAngle:  %u", minAngle);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourAngle: %u", hourAngle);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "minQuadrant:  %u", getQuadrant(minAngle));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourQuadrant: %u", getQuadrant(hourAngle));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "minHalf:  %u", getHalf(minAngle));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHalf: %u", getHalf(hourAngle));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "minHemis:  %u", getHemisphere(minAngle));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHemis: %u", getHemisphere(hourAngle));
-  }
+//   if (secs == 1) {
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "------------------------------------");
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minAngle:  %u", minAngle);
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourAngle: %u", hourAngle);
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minQuadrant:  %u", getQuadrant(minAngle));
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourQuadrant: %u", getQuadrant(hourAngle));
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minHalf:  %u", getHalf(minAngle));
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHalf: %u", getHalf(hourAngle));
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minHemis:  %u", getHemisphere(minAngle));
+//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHemis: %u", getHemisphere(hourAngle));
+//   }
+  
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "min: %u hour: %u diff: %u", minAngle, hourAngle, (minAngle - hourAngle));
   
   if (getHalf(minAngle) == getHalf(hourAngle)) {
     //Both on same half, either top or bottom quadrant
-    //Pretty sure this is right
     if (minAngle > hourAngle) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 1");
+//       APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 1");
       hourOffset = 0;
       minOffset = 180;
     } else {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 2");
+//       APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 2");
       hourOffset = 180;
       minOffset = 0;
     }
@@ -249,53 +296,47 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
       if (getHemisphere(minAngle) == 1) {
         //Both on top, opposite quadrants
         if (minAngle > hourAngle) {
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 3");
-          // 12:51pm correct with hourOffset=180 and minOffset=0. BUT WHY?
+//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 3");
           hourOffset = 180;
           minOffset = 0;
         } else {
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 4");
-          // 10:00pm incorrect with hourOffset=180 and minOffset=0. Correct when flipped.
+//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 4");
           hourOffset = 0;
           minOffset = 180;
         }
       } else {
         //Both on bottom, opposite quadrants
         if (minAngle > hourAngle) {
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 5");
-          // 3:31pm incorrect when hourOffset=180 and minOffset=0. Correct when it's the opposite. BUT WHY???
+//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 5");
           hourOffset = 0;
           minOffset = 180;
         } else {
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 6");
-          hourOffset = 0;
-          minOffset = 180;
+//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 6");
+          hourOffset = 180;
+          minOffset = 0;
         }
       }
     } else {
       //Caddy-corner quadrants
-      // Something's wrong at 11:27pm?
-      if ((minAngle-hourAngle) > 180) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 7");
-        // Correct at 12:33pm (it flipped between 12:32 and 12:33 correctly!) and 1:40pm
-        // INcorrect at 11:19am though! Do we need a switch on quadrant?! lol omg
-        // But it's correct again as soon as it's 11:27 or so....
-        hourOffset = 180;
-        minOffset = 0;
-      } else if ((minAngle-hourAngle) > 0) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 8");
-        // Correct at 12:32pm and 1:31pm!
+      if (minAngle > hourAngle) {
+        if ((minAngle - hourAngle) > 180) {
+//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 7");
+          hourOffset = 180;
+          minOffset = 0;
+        } else {
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 8");
+          // Correct at 12:32pm and 1:31pm!
+          hourOffset = 0;
+          minOffset = 180;
+        }
+      } else if ((hourAngle - minAngle) > 180) {
+        //APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 9");
         hourOffset = 0;
         minOffset = 180;
-      } else if (abs(minAngle-hourAngle) > 180) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 9");
-        // I think switching to hourOffset=180 and minOffset=0 fixed this at 10:20
-        hourOffset = 180;
-        minOffset = 0;
       } else {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 10");
-        hourOffset = 0;
-        minOffset = 180;
+        //APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 10");
+        hourOffset = 180;
+        minOffset = 0;
       }
     }
   }
