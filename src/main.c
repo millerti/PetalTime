@@ -31,6 +31,11 @@ int secs = 0; // = 1; //t->tm_sec;
 int mins = 0; // = 19; //t->tm_min;
 int hours = 0; // = 11; //t->tm_hour;
 int testCase = 15;
+int maskOne = 0;
+int maskTwo = 0;
+int secsOffset = 0;
+int forceFullRefresh = 1;
+
 
 #define NUM_COLORS 64
 #define NUM_TEST_CASES 16
@@ -223,188 +228,120 @@ static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
 
 static void seconds_layer_update_callback(Layer *layer, GContext* ctx) {
   graphics_context_set_stroke_color(ctx, SecondsColor); //GColorDarkGray
-  time_t now = time(NULL);
-  struct tm *t = localtime(&now);
-
-  secs = t->tm_sec;
-  signed int secAngle = (secs + 1) * 6;
-  
   graphics_context_set_stroke_color(ctx, SecondsColor);
-  
-  gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
+  gpath_rotate_to(second_segment_path, secsOffset);
   gpath_draw_outline(ctx, second_segment_path);
 }
 
-static void getNextTestCase(int *testCase, int * hours, int * mins, int * secs) {
-  *testCase = (*testCase + 1) % NUM_TEST_CASES;
-  *hours = testCases[*testCase][0];
-  *mins = testCases[*testCase][1];
-  *secs = testCases[*testCase][2];
-}
+// static void getNextTestCase(int *testCase, int * hours, int * mins, int * secs) {
+//   *testCase = (*testCase + 1) % NUM_TEST_CASES;
+//   *hours = testCases[*testCase][0];
+//   *mins = testCases[*testCase][1];
+//   *secs = testCases[*testCase][2];
+// }
 
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
-  int hourOffset = 0;
-  int minOffset = 0;
-  
-  time_t now = time(NULL);
-  struct tm *t = localtime(&now);
-
-  //secs = t->tm_sec;
-  mins = t->tm_min;
-  hours = t->tm_hour;
-  
-// Speed things up for testing
-//   secs = 4;
-//   mins = (t->tm_sec * 5) % 60;
-  
-//   if (mins == 0) {
-//     hours = (hours + 1) % 12;
-//   }
-  
-  //signed int secAngle = (secs + 1) * 6;
-  signed int minAngle = mins * 6;
-  int hourAngle = (( hours % 12 ) * 30) + (mins / 2);
-
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
-
   graphics_context_set_fill_color(ctx, MinHourPetalColor);
-
   graphics_fill_circle(ctx, center, 65);
-
   graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   graphics_context_set_stroke_color(ctx, GColorClear);
-  
-//   if (secs == 1) {
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "------------------------------------");
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minAngle:  %u", minAngle);
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourAngle: %u", hourAngle);
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minQuadrant:  %u", getQuadrant(minAngle));
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourQuadrant: %u", getQuadrant(hourAngle));
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minHalf:  %u", getHalf(minAngle));
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHalf: %u", getHalf(hourAngle));
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "minHemis:  %u", getHemisphere(minAngle));
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "hourHemis: %u", getHemisphere(hourAngle));
-//   }
-  
-//   APP_LOG(APP_LOG_LEVEL_DEBUG, "min: %u hour: %u diff: %u", minAngle, hourAngle, (minAngle - hourAngle));
-  
-  if (getHalf(minAngle) == getHalf(hourAngle)) {
-    //Both on same half, either top or bottom quadrant
-    if (minAngle > hourAngle) {
-//       APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 1");
-      hourOffset = 0;
-      minOffset = 180;
-    } else {
-//       APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 2");
-      hourOffset = 180;
-      minOffset = 0;
-    }
-  } else { 
-    if (getHemisphere(minAngle) == getHemisphere(hourAngle)) {
-      if (getHemisphere(minAngle) == 1) {
-        //Both on top, opposite quadrants
-        if (minAngle > hourAngle) {
-//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 3");
-          hourOffset = 180;
-          minOffset = 0;
-        } else {
-//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 4");
-          hourOffset = 0;
-          minOffset = 180;
-        }
-      } else {
-        //Both on bottom, opposite quadrants
-        if (minAngle > hourAngle) {
-//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 5");
-          hourOffset = 0;
-          minOffset = 180;
-        } else {
-//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 6");
-          hourOffset = 180;
-          minOffset = 0;
-        }
-      }
-    } else {
-      //Caddy-corner quadrants
-      if (minAngle > hourAngle) {
-        if ((minAngle - hourAngle) > 180) {
-//           APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 7");
-          hourOffset = 180;
-          minOffset = 0;
-        } else {
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 8");
-          // Correct at 12:32pm and 1:31pm!
-          hourOffset = 0;
-          minOffset = 180;
-        }
-      } else if ((hourAngle - minAngle) > 180) {
-        //APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 9");
-        hourOffset = 0;
-        minOffset = 180;
-      } else {
-        //APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 10");
-        hourOffset = 180;
-        minOffset = 0;
-      }
-    }
-  }
-
-//   APP_LOG(APP_LOG_LEVEL_DEBUG, "(TRIG_MAX_ANGLE / 360) * minAngle = %u", (TRIG_MAX_ANGLE / 360) * minAngle);
-  gpath_rotate_to(mask_path, (TRIG_MAX_ANGLE / 360) * (minAngle + minOffset));
+  gpath_rotate_to(mask_path, maskOne); 
   gpath_draw_filled(ctx, mask_path);
-  gpath_rotate_to(mask_path, (TRIG_MAX_ANGLE / 360) * (hourAngle + hourOffset));
+  gpath_rotate_to(mask_path, maskTwo);
   gpath_draw_filled(ctx, mask_path);
-  
-//   graphics_context_set_stroke_color(ctx, SecondsColor);
-  
-//   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
-//   gpath_draw_outline(ctx, second_segment_path);
-}
-
-//   #if TWENTY_FOUR_HOUR_DIAL
-//     angle = (t->tm_hour * 15) + (t->tm_min / 4);
-//   #else
-//     angle = (( t->tm_hour % 12 ) * 30) + (t->tm_min / 2);
-//   #endif
-// */
-
-static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {   
-//  layer_mark_dirty(watchface_layer);
-}
-
-static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {   
-//  layer_mark_dirty(seconds_layer);
 }
 
 static void handle_tick(struct tm *tick_time, TimeUnits units_changed) {  
   if (units_changed & SECOND_UNIT) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "second update");
+    
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    secs = t->tm_sec;
+    signed int secAngle = (secs + 1) * 6;
+    
+    secsOffset = (TRIG_MAX_ANGLE / 360) * secAngle;
+    
     layer_mark_dirty(seconds_layer);
   }
   if (units_changed & MINUTE_UNIT) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "minute update");
+    
+    //forceFullRefresh = 0;
+    
+    updateColors();
+      
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    mins = t->tm_min;
+    hours = t->tm_hour;
+    signed int minAngle = mins * 6;
+    int hourAngle = (( hours % 12 ) * 30) + (mins / 2);
+    int minOffset = 0;
+    int hourOffset = 0;
+    
+    if (getHalf(minAngle) == getHalf(hourAngle)) {
+      //Both on same half, either top or bottom quadrant
+      if (minAngle > hourAngle) {
+        hourOffset = 0;
+        minOffset = 180;
+      } else {
+        hourOffset = 180;
+        minOffset = 0;
+      }
+    } else { 
+      if (getHemisphere(minAngle) == getHemisphere(hourAngle)) {
+        if (getHemisphere(minAngle) == 1) {
+          //Both on top, opposite quadrants
+          if (minAngle > hourAngle) {
+            hourOffset = 180;
+            minOffset = 0;
+          } else {
+            hourOffset = 0;
+            minOffset = 180;
+          }
+        } else {
+          //Both on bottom, opposite quadrants
+          if (minAngle > hourAngle) {
+            hourOffset = 0;
+            minOffset = 180;
+          } else {
+            hourOffset = 180;
+            minOffset = 0;
+          }
+        }
+      } else {
+        //Caddy-corner quadrants
+        if (minAngle > hourAngle) {
+          if ((minAngle - hourAngle) > 180) {
+            hourOffset = 180;
+            minOffset = 0;
+          } else {
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "CASE 8");
+            hourOffset = 0;
+            minOffset = 180;
+          }
+        } else if ((hourAngle - minAngle) > 180) {
+          hourOffset = 0;
+          minOffset = 180;
+        } else {
+          hourOffset = 180;
+          minOffset = 0;
+        }
+      }
+    }
+    
+    maskOne = (TRIG_MAX_ANGLE / 360) * (minAngle + minOffset);
+    maskTwo = (TRIG_MAX_ANGLE / 360) * (hourAngle + hourOffset);
+    
     layer_mark_dirty(watchface_layer);
   }
 }
 
 void in_received_handler(DictionaryIterator *received, void *context) {
-//    Tuple *invert_tuple = dict_find(received, KEY_INVERT);
-   
-//    INVERT = invert_tuple->value->int8 ? true : false;
-//    persist_write_bool(KEY_INVERT, INVERT);
-//    if(INVERT)
-//    {
-//     BACKGROUND_COLOR = GColorWhite;
-//     FOREGROUND_COLOR = GColorBlack;
-//    }
-//    else
-//    {
-//     BACKGROUND_COLOR = GColorBlack;
-//     FOREGROUND_COLOR = GColorRed;        
-//    }
-//    window_set_background_color(window, BACKGROUND_COLOR);
- }
+}
 
 void in_dropped_handler(AppMessageResult reason, void *context) {
    // incoming message dropped
@@ -454,6 +391,9 @@ static void init(void) {
   seconds_layer = layer_create(bounds);
   layer_set_update_proc(seconds_layer, seconds_layer_update_callback);
   layer_add_child(window_layer, seconds_layer);
+  
+  time_t t = time(NULL);
+  handle_tick(localtime(&t), SECOND_UNIT | MINUTE_UNIT);
   
   tick_timer_service_subscribe(SECOND_UNIT | MINUTE_UNIT, handle_tick);
 }
