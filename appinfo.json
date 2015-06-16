@@ -1,22 +1,21 @@
 {
     "appKeys": {},
     "capabilities": [
-        "configurable"
+        ""
     ],
-    "companyName": "t.michael.miller@gmail.com",
+    "companyName": "TIMOOOO",
     "longName": "PetalTime",
     "projectType": "native",
     "resources": {
         "media": []
     },
     "sdkVersion": "3",
-    "shortName": "Analog clock experiment",
+    "shortName": "Petal Time",
     "targetPlatforms": [
         "basalt"
     ],
     "uuid": "3b11b9e2-3f38-43b4-a411-04f8e8c11d2a",
-    "versionCode": 1,
-    "versionLabel": "1.0",
+    "versionLabel": "0.2",
     "watchapp": {
         "watchface": true
     }

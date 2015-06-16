@@ -14,7 +14,9 @@ static void click_handler(ClickRecognizerRef recognizer, void *context);
 static void updateColors();
 static void markers_layer_update_callback(Layer *layer, GContext* ctx);
 static void watchface_layer_update_callback(Layer *layer, GContext* ctx);
+static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
 static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed);
+static void handle_tick(struct tm *tick_time, TimeUnits units_changed);
 void in_received_handler(DictionaryIterator *received, void *context);
 
 static void init(void);

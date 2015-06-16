@@ -1,9 +1,7 @@
 /*
-  Source originally copied from
-  https://github.com/nirajsanghvi/PolarClock2.0
-  
-  Modifications by Tim Miller
- */
+  Babby's first watchface
+  Tim Miller
+*/
 
 #include <main.h>
 #include <time.h>
@@ -21,12 +19,13 @@ GColor BACKGROUND_COLOR; //= GColorBlack;
 // static GColor FOREGROUND_COLOR; // = GColorWhite;
 
 GColor MinHourPetalColor;
-GColor SecondHandColor;
+GColor SecondsColor;
 GColor MarkersColor;
 
 Window *window;
 Layer *watchface_layer;
 Layer *markers_layer;
+Layer *seconds_layer;
 
 int secs = 0; // = 1; //t->tm_sec;
 int mins = 0; // = 19; //t->tm_min;
@@ -193,22 +192,23 @@ static void click_config_provider(void *context) {
 }
 
 static void click_handler(ClickRecognizerRef recognizer, void *context) {
-  updateColors();
+  //updateColors();
 }
 
 static void updateColors() {
   int randInt = rand() % NUM_COLORS;
-  MinHourPetalColor = GColors[randInt];
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "MinHourPetalColor index: %u", randInt);
-  randInt = rand() % NUM_COLORS;
-  SecondHandColor = GColors[randInt];
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "SecondHandColor index: %u", randInt);
-  randInt = rand() % NUM_COLORS;
   BACKGROUND_COLOR = GColors[randInt];
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "BackgroundColor index: %u", randInt);
+  window_set_background_color(window, BACKGROUND_COLOR);
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "BackgroundColor index: %u", randInt);
+  randInt = rand() % NUM_COLORS;
+  MinHourPetalColor = GColors[randInt];
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "MinHourPetalColor index: %u", randInt);
+  randInt = rand() % NUM_COLORS;
+  SecondsColor = GColors[randInt];
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "SecondHandColor index: %u", randInt);
   randInt = rand() % NUM_COLORS;
   MarkersColor = GColors[randInt];
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "MarkersColor index: %u", randInt);
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "MarkersColor index: %u", randInt);
 }
 
 static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
@@ -219,6 +219,20 @@ static void markers_layer_update_callback(Layer *layer, GContext* ctx) {
     gpath_rotate_to(markers_path, (TRIG_MAX_ANGLE / 360) * angle);
     gpath_draw_outline(ctx, markers_path);
   }
+}
+
+static void seconds_layer_update_callback(Layer *layer, GContext* ctx) {
+  graphics_context_set_stroke_color(ctx, SecondsColor); //GColorDarkGray
+  time_t now = time(NULL);
+  struct tm *t = localtime(&now);
+
+  secs = t->tm_sec;
+  signed int secAngle = (secs + 1) * 6;
+  
+  graphics_context_set_stroke_color(ctx, SecondsColor);
+  
+  gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
+  gpath_draw_outline(ctx, second_segment_path);
 }
 
 static void getNextTestCase(int *testCase, int * hours, int * mins, int * secs) {
@@ -235,10 +249,11 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
 
-  secs = t->tm_sec;
+  //secs = t->tm_sec;
   mins = t->tm_min;
   hours = t->tm_hour;
   
+// Speed things up for testing
 //   secs = 4;
 //   mins = (t->tm_sec * 5) % 60;
   
@@ -246,13 +261,7 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 //     hours = (hours + 1) % 12;
 //   }
   
-//   if ((t->tm_sec % 10) == 0) {
-//     getNextTestCase(&testCase, &hours, &mins, &secs);
-
-//     APP_LOG(APP_LOG_LEVEL_DEBUG, "test case %d:  %d:%d", testCase, hours, mins);
-//   }
-  
-  signed int secAngle = (secs + 1) * 6;
+  //signed int secAngle = (secs + 1) * 6;
   signed int minAngle = mins * 6;
   int hourAngle = (( hours % 12 ) * 30) + (mins / 2);
 
@@ -347,10 +356,10 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
   gpath_rotate_to(mask_path, (TRIG_MAX_ANGLE / 360) * (hourAngle + hourOffset));
   gpath_draw_filled(ctx, mask_path);
   
-  graphics_context_set_stroke_color(ctx, SecondHandColor);
+//   graphics_context_set_stroke_color(ctx, SecondsColor);
   
-  gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
-  gpath_draw_outline(ctx, second_segment_path);
+//   gpath_rotate_to(second_segment_path, (TRIG_MAX_ANGLE / 360) * secAngle);
+//   gpath_draw_outline(ctx, second_segment_path);
 }
 
 //   #if TWENTY_FOUR_HOUR_DIAL
@@ -360,8 +369,23 @@ static void watchface_layer_update_callback(Layer *layer, GContext* ctx) {
 //   #endif
 // */
 
-static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-  layer_mark_dirty(watchface_layer);
+static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {   
+//  layer_mark_dirty(watchface_layer);
+}
+
+static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {   
+//  layer_mark_dirty(seconds_layer);
+}
+
+static void handle_tick(struct tm *tick_time, TimeUnits units_changed) {  
+  if (units_changed & SECOND_UNIT) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "second update");
+    layer_mark_dirty(seconds_layer);
+  }
+  if (units_changed & MINUTE_UNIT) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "minute update");
+    layer_mark_dirty(watchface_layer);
+  }
 }
 
 void in_received_handler(DictionaryIterator *received, void *context) {
@@ -386,25 +410,25 @@ void in_dropped_handler(AppMessageResult reason, void *context) {
    // incoming message dropped
 }
 
-static void init(void) {  
+static void init(void) {
   app_message_register_inbox_received(in_received_handler);
   app_message_register_inbox_dropped(in_dropped_handler);
   app_message_open(64, 0);
-  
-  srand( time(NULL) );
-  BACKGROUND_COLOR = GColorBlack;
-  updateColors();
   
   window = window_create();
   window_set_background_color(window, BACKGROUND_COLOR);
   window_stack_push(window, true);
   
+  srand( time(NULL) );
+  BACKGROUND_COLOR = GColorBlack;
+  updateColors();
+  
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  window_set_click_config_provider(window, click_config_provider); 
+  //window_set_click_config_provider(window, click_config_provider); 
   
-  // Init the layer for the second display
+  // Init the layer for the main display
   watchface_layer = layer_create(bounds);
   layer_set_update_proc(watchface_layer, watchface_layer_update_callback);
   layer_add_child(window_layer, watchface_layer);
@@ -424,9 +448,14 @@ static void init(void) {
   // Init the layer for the markers display
   markers_layer = layer_create(bounds);
   layer_set_update_proc(markers_layer, markers_layer_update_callback);
-  layer_add_child(window_layer, markers_layer);  
+  layer_add_child(window_layer, markers_layer);
   
-  tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+  // Init the layer for the seconds display
+  seconds_layer = layer_create(bounds);
+  layer_set_update_proc(seconds_layer, seconds_layer_update_callback);
+  layer_add_child(window_layer, seconds_layer);
+  
+  tick_timer_service_subscribe(SECOND_UNIT | MINUTE_UNIT, handle_tick);
 }
 
 static void deinit(void) {
@@ -436,8 +465,10 @@ static void deinit(void) {
   
   tick_timer_service_unsubscribe();
   window_destroy(window);
+  
   layer_destroy(watchface_layer);
   layer_destroy(markers_layer);
+  layer_destroy(seconds_layer);
 }
 
 int main(void) {
